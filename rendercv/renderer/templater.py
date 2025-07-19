@@ -14,6 +14,7 @@ import jinja2
 import pydantic
 
 from .. import data
+from ..data.models import computers
 
 
 class TemplatedFile:
@@ -35,6 +36,8 @@ class TemplatedFile:
         self.cv = data_model.cv
         self.design = data_model.design
         self.locale = data_model.locale
+        # Access to additional settings such as sort_order
+        self.rendercv_settings = data_model.rendercv_settings
         self.environment = environment
 
     def template(
@@ -172,7 +175,13 @@ class TypstFile(TemplatedFile):
             }
 
             entries: list[str] = []
-            for i, entry in enumerate(section.entries):
+            # Apply date-based sorting if requested
+            sorted_entries = computers.sort_entries(
+                section.entries,  # type: ignore[arg-type]
+                order=self.rendercv_settings.sort_order if self.rendercv_settings else "none",
+            )
+
+            for i, entry in enumerate(sorted_entries):
                 # Prepare placeholders:
                 placeholders = {}
                 for placeholder_key in placeholder_keys:
@@ -296,8 +305,14 @@ class MarkdownFile(TemplatedFile):
                 section_title=section.title,
                 entry_type=section.entry_type,
             )
+            # Apply date-based sorting if requested
+            sorted_entries = computers.sort_entries(
+                section.entries,  # type: ignore[arg-type]
+                order=self.rendercv_settings.sort_order if self.rendercv_settings else "none",
+            )
+
             entries: list[str] = []
-            for i, entry in enumerate(section.entries):
+            for i, entry in enumerate(sorted_entries):
                 is_first_entry = bool(i == 0)
                 entries.append(
                     self.template(

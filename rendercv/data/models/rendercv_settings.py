@@ -5,7 +5,7 @@ The `rendercv.models.rendercv_settings` module contains the data model of the
 
 import datetime
 import pathlib
-from typing import Optional
+from typing import Optional, Literal
 
 import pydantic
 
@@ -220,6 +220,23 @@ class RenderCVSettings(RenderCVBaseModelWithoutExtraKeys):
         description=(
             "The keywords that will be bold in the output. The default value is an"
             " empty list."
+        ),
+    )
+
+    # Add a field to control the sorting order of entries in each section.
+    # Possible values:
+    #   * "reverse"         – newest → oldest (reverse-chronological)
+    #   * "chronological"   – oldest → newest
+    #   * "none" (default) – keep user-provided order untouched
+    sort_order: Literal["reverse", "chronological", "none"] = pydantic.Field(
+        default="none",
+        title="Sort Order",
+        description=(
+            "Determines how the entries inside each section are ordered before"
+            " rendering.\n\n"
+            "• \"reverse\" (default resume style): newest → oldest.\n"
+            "• \"chronological\": oldest → newest.\n"
+            "• \"none\": do not change the order supplied by the user."
         ),
     )
 
