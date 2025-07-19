@@ -44,7 +44,12 @@ from .models import (
     make_a_url_clean,
     make_keywords_bold_in_a_string,
     rendercv_data_model_fields,
+    computers,
 )
+
+# Re-export sort_entries for public API convenience
+sort_entries = computers.sort_entries  # type: ignore[attr-defined]
+
 from .reader import (
     get_error_message_and_location_and_value_from_a_custom_error,
     parse_validation_errors,
@@ -88,5 +93,6 @@ __all__ = [
     "read_a_yaml_file",
     "read_input_file",
     "rendercv_data_model_fields",
+    "sort_entries",
     "validate_input_dictionary_and_return_the_data_model",
 ]

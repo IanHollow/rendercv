@@ -7,7 +7,7 @@ the time span between two dates, the date string, the URL of a social network, e
 import pathlib
 import re
 from datetime import date as Date
-from typing import Optional
+from typing import Optional, List, Sequence, Callable, Any  # noqa: E402  # isort: skip
 
 import phonenumbers
 
@@ -438,3 +438,117 @@ def dictionary_key_to_proper_section_title(key: str) -> str:
         )
         for word in words
     )
+
+
+# ======================================================================================
+# Sorting utilities: ====================================================================
+# ======================================================================================
+
+
+def _earliest_date_of_entry(entry) -> Date:  # type: ignore[override]
+    """Return the earliest relevant date of an entry.
+
+    If *start_date* exists, it is preferred. Otherwise *date*, then *end_date*.
+    For entries where none of these are present, a *ValueError* is raised.
+    """
+
+    # Helper to access attributes safely
+    def _get(attr: str):
+        return getattr(entry, attr, None)
+
+    start_date = _get("start_date")
+    if start_date is not None:
+        return get_date_object(start_date)  # type: ignore[arg-type]
+
+    date = _get("date")
+    if date is not None:
+        return get_date_object(date)  # type: ignore[arg-type]
+
+    end_date = _get("end_date")
+    if end_date is not None and end_date != "present":
+        return get_date_object(end_date)  # type: ignore[arg-type]
+
+    message = (
+        "All entries must provide at least one of 'start_date', 'end_date', or 'date' "
+        "to enable sorting."
+    )
+    raise ValueError(message)
+
+
+def _latest_date_of_entry(entry) -> Date:  # type: ignore[override]
+    """Return the latest relevant date of an entry.
+
+    Priority order: *end_date* (or today for ongoing roles) → *date* → *start_date*.
+    Raises *ValueError* if an appropriate field is not available or not parseable.
+    """
+
+    def _get(attr: str):
+        return getattr(entry, attr, None)
+
+    end_date = _get("end_date")
+    if end_date is not None:
+        if end_date == "present":
+            return get_date_input()
+        return get_date_object(end_date)  # type: ignore[arg-type]
+
+    date = _get("date")
+    if date is not None:
+        return get_date_object(date)  # type: ignore[arg-type]
+
+    start_date = _get("start_date")
+    if start_date is not None:
+        return get_date_object(start_date)  # type: ignore[arg-type]
+
+    message = (
+        "All entries must provide at least one of 'start_date', 'end_date', or 'date' "
+        "to enable sorting."
+    )
+    raise ValueError(message)
+
+
+def sort_entries(
+    entries: Sequence[Any],
+    order: str = "none",
+) -> List[Any]:
+    """Return *entries* sorted according to *order*.
+
+    Parameters
+    ----------
+    entries: list[Entry]
+        The original list of entries for a CV section.
+    order: str, default "none"
+        Sorting strategy: "reverse", "chronological", or "none" (case-sensitive).
+
+    Returns
+    -------
+    list[Entry]
+        Possibly re-ordered list. Original list is left untouched.
+
+    Raises
+    ------
+    ValueError
+        If *order* is not one of the allowed values or an entry lacks usable date
+        information when a sorted order is requested.
+    """
+
+    if order not in {"reverse", "chronological", "none"}:
+        raise ValueError("'order' must be one of 'reverse', 'chronological', or 'none'.")
+
+    if order == "none":
+        # Return a shallow copy to avoid surprising in-place modifications.
+        return list(entries)
+
+    # Determine the key function based on the order.
+    key_func: Callable[[Any], Date]
+    if order == "reverse":
+        key_func = _latest_date_of_entry
+        reverse_flag = True  # newest → oldest
+    else:  # chronological
+        key_func = _earliest_date_of_entry
+        reverse_flag = False  # oldest → newest
+
+    try:
+        return sorted(list(entries), key=key_func, reverse=reverse_flag)
+    except ValueError:
+        # Propagate any ValueError from the helper when an entry is unsortable.
+        raise
