@@ -343,6 +343,23 @@ class PublicationEntryBase(RenderCVBaseModelWithExtraKeys):
         title="Journal",
     )
 
+    @pydantic.field_validator("url", mode="before")
+    @classmethod
+    def empty_string_means_none(
+        cls, value: Optional[str | pydantic.HttpUrl]
+    ) -> Optional[str | pydantic.HttpUrl]:
+        """Convert empty strings to ``None`` for the *url* field.
+
+        Similar to the *website* field in :class:`~rendercv.data.models.curriculum_vitae.CurriculumVitae`,
+        an omitted YAML value (``url:``) ends up as an empty string.  This helper
+        turns it into ``None`` so that Pydantic's serializer does not raise
+        warnings when the model is dumped.
+        """
+
+        if value == "":
+            return None
+        return value
+
     @pydantic.model_validator(mode="after")  # type: ignore
     def ignore_url_if_doi_is_given(self) -> "PublicationEntryBase":
         """Check if DOI is provided and ignore the URL if it is provided."""
