@@ -26,14 +26,18 @@ from click.core import Parameter  # NEW: needed for monkey-patch
 if "ctx" not in inspect.signature(Parameter.make_metavar).parameters:
     _original_make_metavar = Parameter.make_metavar
 
-    def _patched_make_metavar(self, ctx=None, **kwargs):  # type: ignore[override]
-        """A wrapper around the older Click ``make_metavar`` that discards *ctx*.
+    def _patched_make_metavar(self, *args, **kwargs):  # type: ignore[override]
+        """Compatibility wrapper that ignores the first positional argument (ctx).
 
-        The implementation simply forwards the call to the original method,
-        preserving its behaviour while accepting the newer signature expected
-        by Typer.
+        Typer (≥0.9) calls ``Parameter.make_metavar(ctx, param_hint=None)`` while
+        Click <8.1 implements ``make_metavar(param_hint=None)``.  This shim
+        accepts any signature and forwards the call to the original method
+        omitting the *ctx* argument if Click doesn't expect it.
         """
-        return _original_make_metavar(self, **kwargs)  # type: ignore[arg-type]
+        # Discard the *ctx* positional argument (first in *args*) if present.
+        if args:
+            args = args[1:]
+        return _original_make_metavar(self, *args, **kwargs)  # type: ignore[arg-type]
 
     Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
 
