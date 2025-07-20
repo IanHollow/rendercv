@@ -15,31 +15,39 @@ from . import printer, utilities
 import inspect  # NEW: for signature inspection
 from click.core import Parameter  # NEW: needed for monkey-patch
 
-# NEW COMPATIBILITY PATCH FOR CLICK < 8.1
-# Typer (which RenderCV uses for the CLI) assumes that click.Parameter.make_metavar
-# accepts a ``ctx`` argument – this is true for click>=8.1.  Earlier versions of
-# Click only expose ``make_metavar(self, param_hint=None)`` which leads to a
-# ``TypeError`` when Typer tries to call it with the extra ``ctx`` parameter.
-# To stay compatible with both versions without enforcing a hard Click upgrade,
-# we monkey-patch the method at import time so that it gracefully ignores the
-# unexpected positional argument when it is not supported.
-if "ctx" not in inspect.signature(Parameter.make_metavar).parameters:
-    _original_make_metavar = Parameter.make_metavar
+_orig_make_metavar = Parameter.make_metavar  # keep original for later use
 
-    def _patched_make_metavar(self, *args, **kwargs):  # type: ignore[override]
-        """Compatibility wrapper that ignores the first positional argument (ctx).
+# Inspect to see if original implementation expects a ``ctx`` parameter.
+_expects_ctx = "ctx" in inspect.signature(_orig_make_metavar).parameters
 
-        Typer (≥0.9) calls ``Parameter.make_metavar(ctx, param_hint=None)`` while
-        Click <8.1 implements ``make_metavar(param_hint=None)``.  This shim
-        accepts any signature and forwards the call to the original method
-        omitting the *ctx* argument if Click doesn't expect it.
-        """
-        # Discard the *ctx* positional argument (first in *args*) if present.
-        if args:
-            args = args[1:]
-        return _original_make_metavar(self, *args, **kwargs)  # type: ignore[arg-type]
 
-    Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
+def _flexible_make_metavar(self, *args, **kwargs):  # type: ignore[override]
+    """A compatibility shim for ``click.Parameter.make_metavar``.
+
+    Typer versions < 0.12 call this method with *zero* positional arguments
+    (i.e. ``param.make_metavar()``) while Click ≥ 8.1 changed the public
+    signature to ``make_metavar(self, ctx, param_hint=None)``.  Depending on
+    which combination of Typer ⨯ Click is installed, we may therefore receive:
+
+    1. No extra positional arguments (Typer old).
+    2. A single *ctx* positional argument (Typer new, Click old).
+    3. Two positional arguments (*ctx*, *param_hint*).
+
+    The goal is to forward the correct subset of arguments to the *original*
+    implementation so that it matches its signature regardless of what Typer
+    supplied.
+    """
+
+    # If the original implementation expects *ctx*, keep it; otherwise drop it.
+    forwarded_args = list(args)
+    if not _expects_ctx and forwarded_args:
+        forwarded_args.pop(0)  # discard ctx
+
+    return _orig_make_metavar(self, *forwarded_args, **kwargs)  # type: ignore[arg-type]
+
+
+# Monkey-patch once so subsequent imports see the patched method.
+Parameter.make_metavar = _flexible_make_metavar  # type: ignore[assignment]
 
 app = typer.Typer(
     rich_markup_mode="rich",
