@@ -71,6 +71,16 @@ def create_a_sample_data_model(
     name = name.encode().decode("unicode-escape")
     cv.name = name
 
+    # Ensure optional URL fields have valid placeholder values so that Pydantic
+    # does not emit serialization warnings when the sample YAML file is created.
+    # An empty string would be interpreted as an invalid ``HttpUrl`` instance
+    # and would trigger ``PydanticSerializationUnexpectedValue`` during
+    # ``model_dump_json``.  Using a dummy but valid URL string is enough to keep
+    # the example data functional while remaining obviously replaceable by the
+    # end-user.
+    if cv.website is None:
+        cv.website = "https://example.com"  # type: ignore[arg-type]
+
     design = models.available_theme_options[theme](theme=theme)
 
     return models.RenderCVDataModel(cv=cv, design=design)
