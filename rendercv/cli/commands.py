@@ -12,6 +12,30 @@ from rich import print
 
 from .. import __version__, data
 from . import printer, utilities
+import inspect  # NEW: for signature inspection
+from click.core import Parameter  # NEW: needed for monkey-patch
+
+# NEW COMPATIBILITY PATCH FOR CLICK < 8.1
+# Typer (which RenderCV uses for the CLI) assumes that click.Parameter.make_metavar
+# accepts a ``ctx`` argument – this is true for click>=8.1.  Earlier versions of
+# Click only expose ``make_metavar(self, param_hint=None)`` which leads to a
+# ``TypeError`` when Typer tries to call it with the extra ``ctx`` parameter.
+# To stay compatible with both versions without enforcing a hard Click upgrade,
+# we monkey-patch the method at import time so that it gracefully ignores the
+# unexpected positional argument when it is not supported.
+if "ctx" not in inspect.signature(Parameter.make_metavar).parameters:
+    _original_make_metavar = Parameter.make_metavar
+
+    def _patched_make_metavar(self, ctx=None, **kwargs):  # type: ignore[override]
+        """A wrapper around the older Click ``make_metavar`` that discards *ctx*.
+
+        The implementation simply forwards the call to the original method,
+        preserving its behaviour while accepting the newer signature expected
+        by Typer.
+        """
+        return _original_make_metavar(self, **kwargs)  # type: ignore[arg-type]
+
+    Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
 
 app = typer.Typer(
     rich_markup_mode="rich",
