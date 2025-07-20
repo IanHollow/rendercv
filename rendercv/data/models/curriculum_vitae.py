@@ -427,6 +427,33 @@ class CurriculumVitae(RenderCVBaseModelWithExtraKeys):
         default=None,
         title="Website",
     )
+    @pydantic.field_validator("website", mode="before")
+    @classmethod
+    def empty_string_means_none(
+        cls, value: Optional[str | pydantic.HttpUrl]
+    ) -> Optional[str | pydantic.HttpUrl]:
+        """Convert empty strings to ``None``.
+
+        When the YAML input contains a key without a value (``website:``) ruamel will
+        parse that value as an empty string (``""``).  Pydantic still proceeds
+        because the field is optional, however when the model is serialized back
+        to Python (``model_dump``/``model_dump_json``) the internal serializer for
+        ``HttpUrl`` expects either ``None`` or a valid ``HttpUrl`` instance. An
+        empty string breaks that assumption and triggers the
+        ``PydanticSerializationUnexpectedValue`` warning that shows up during the
+        test suite.  By normalising empty strings to ``None`` at validation time we
+        keep the data semantically correct and silence the warning.
+
+        Args:
+            value: The raw value coming from the input data.
+
+        Returns:
+            The original value if it is truthy, otherwise ``None``.
+        """
+
+        if value == "":
+            return None
+        return value
     social_networks: Optional[list[SocialNetwork]] = pydantic.Field(
         default=None,
         title="Social Networks",
