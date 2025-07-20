@@ -15,39 +15,47 @@ from . import printer, utilities
 import inspect  # NEW: for signature inspection
 from click.core import Parameter  # NEW: needed for monkey-patch
 
-_orig_make_metavar = Parameter.make_metavar  # keep original for later use
+_orig_make_metavar = Parameter.make_metavar  # preserve original implementation
+_orig_sig = inspect.signature(_orig_make_metavar)
+_orig_param_count = len(_orig_sig.parameters)  # includes ``self``
 
-# Inspect to see if original implementation expects a ``ctx`` parameter.
-_expects_ctx = "ctx" in inspect.signature(_orig_make_metavar).parameters
 
+def _adapt_make_metavar(self, *args, **kwargs):  # type: ignore[override]
+    """Adapter to call *make_metavar* regardless of Click version.
 
-def _flexible_make_metavar(self, *args, **kwargs):  # type: ignore[override]
-    """A compatibility shim for ``click.Parameter.make_metavar``.
+    It normalises the positional arguments emitted by Typer to match the
+    signature expected by the underlying Click version:
 
-    Typer versions < 0.12 call this method with *zero* positional arguments
-    (i.e. ``param.make_metavar()``) while Click ≥ 8.1 changed the public
-    signature to ``make_metavar(self, ctx, param_hint=None)``.  Depending on
-    which combination of Typer ⨯ Click is installed, we may therefore receive:
-
-    1. No extra positional arguments (Typer old).
-    2. A single *ctx* positional argument (Typer new, Click old).
-    3. Two positional arguments (*ctx*, *param_hint*).
-
-    The goal is to forward the correct subset of arguments to the *original*
-    implementation so that it matches its signature regardless of what Typer
-    supplied.
+    • Click < 8.1 → make_metavar(self, param_hint=None)
+    • Click ≥ 8.1 → make_metavar(self, ctx, param_hint=None)
     """
 
-    # If the original implementation expects *ctx*, keep it; otherwise drop it.
-    forwarded_args = list(args)
-    if not _expects_ctx and forwarded_args:
-        forwarded_args.pop(0)  # discard ctx
+    # Determine expected arg layout (excluding *self*).
+    expects_ctx = _orig_param_count == 3  # self + ctx + param_hint
 
-    return _orig_make_metavar(self, *forwarded_args, **kwargs)  # type: ignore[arg-type]
+    ctx = None
+    param_hint = None
+
+    if expects_ctx:
+        if len(args) == 1:
+            # We only got ``param_hint``; fabricate ctx=None.
+            param_hint = args[0]
+        elif len(args) >= 2:
+            ctx, param_hint = args[:2]
+    else:
+        # Original expects only param_hint.
+        if len(args) >= 1:
+            param_hint = args[0]
+
+    # Delegate to the original function with correct positional arguments.
+    if expects_ctx:
+        return _orig_make_metavar(self, ctx, param_hint, **kwargs)  # type: ignore[arg-type]
+    else:
+        return _orig_make_metavar(self, param_hint, **kwargs)  # type: ignore[arg-type]
 
 
-# Monkey-patch once so subsequent imports see the patched method.
-Parameter.make_metavar = _flexible_make_metavar  # type: ignore[assignment]
+# Apply the monkey-patch once.
+Parameter.make_metavar = _adapt_make_metavar  # type: ignore[assignment]
 
 app = typer.Typer(
     rich_markup_mode="rich",
