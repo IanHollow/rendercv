@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import shutil
+import ssl
 import sys
 import time
 import urllib.request
@@ -134,7 +135,7 @@ def get_latest_version_number_from_pypi() -> packaging.version.Version | None:
     version: packaging.version.Version | None = None
     url = "https://pypi.org/pypi/rendercv/json"
     try:
-        with urllib.request.urlopen(url) as response:
+        with urllib.request.urlopen(url, context=ssl._create_unverified_context()) as response:
             data = response.read()
             encoding = response.info().get_content_charset("utf-8")
             json_data = json.loads(data.decode(encoding))
