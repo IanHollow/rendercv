@@ -132,7 +132,7 @@ class TypstFile(TemplatedFile):
         # All the placeholders used in the templates:
         sections_input: dict[str, list[pydantic.BaseModel]] = self.cv.sections_input  # type: ignore
         # Loop through the sections and entries to find all the field names:
-        placeholder_keys: set[str] = set()
+        placeholder_keys: list[str] = []
         if sections_input:
             for section in sections_input.values():
                 for entry in section:
@@ -140,7 +140,9 @@ class TypstFile(TemplatedFile):
                         break
                     entry_dictionary = entry.model_dump()
                     for key in entry_dictionary:
-                        placeholder_keys.add(key.upper())
+                        placeholder_keys.append(key.upper())
+
+        placeholder_keys = sorted(set(placeholder_keys))
 
         pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
@@ -743,7 +745,7 @@ def replace_placeholders_with_actual_values(
     Returns:
         The string with actual values.
     """
-    for placeholder, value in placeholders.items():
+    for placeholder, value in sorted(placeholders.items()):
         if value:
             text = text.replace(placeholder, str(value))
         else:
