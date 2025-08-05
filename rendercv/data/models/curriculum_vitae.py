@@ -576,7 +576,7 @@ class CurriculumVitae(RenderCVBaseModelWithExtraKeys):
                 "X": "x-twitter",
             }
 
-            connections_list: list[dict[str, Optional[str]]] = []
+            connections_list: list[dict[str, str | None]] = []
             if self.social_networks is None:
                 return connections_list
 
@@ -611,7 +611,7 @@ class CurriculumVitae(RenderCVBaseModelWithExtraKeys):
             "social_networks": (self.social_networks is not None, _social_networks_connections),
         }
 
-        connections: list[dict[str, Optional[str]]] = []
+        connections: list[dict[str, str | None]] = []
 
         # Prefer the order captured from the YAML file. If, for any reason, it was
         # not captured, fall back to the traditional fixed ordering used before so
