@@ -244,4 +244,3 @@ class RenderCVSettings(RenderCVBaseModelWithoutExtraKeys):
         DATE_INPUT = value
 
         return value
-
