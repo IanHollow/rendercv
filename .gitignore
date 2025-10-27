@@ -51,6 +51,9 @@ coverage.xml
 .pytest_cache/
 cover/
 .ruff_cache/
+# Mutation testing artifacts
+.mutmut-cache
+mutants/
 
 # Translations
 *.mo

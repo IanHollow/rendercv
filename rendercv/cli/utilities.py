@@ -179,7 +179,11 @@ def copy_templates(
     shutil.copytree(
         template_directory,
         destination,
-        ignore=shutil.ignore_patterns("__init__.py", "__pycache__"),
+        ignore=shutil.ignore_patterns(
+            "__init__.py",
+            "__pycache__",
+            "*.meta",
+        ),
     )
 
     return destination
