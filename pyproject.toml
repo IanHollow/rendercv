@@ -133,6 +133,7 @@ dependencies = [
     "pre-commit",          # to run the checks before committing
     "pytest==8.3.4",       # to run the tests
     "coverage==7.6.10",    # to generate coverage reports
+    "mutmut==3.3.1",       # to run mutation tests
     "pypdf==5.1.0",        # to read PDF files
     "snakeviz==2.2.2",     # for profiling
     "pyinstaller==6.11.1", # to build the executable
@@ -153,6 +154,12 @@ precommit = "pre-commit run --all-files" # hatch run pre-commit
 test = "pytest" # hatch run test
 # Run the tests and generate the coverage report as HTML:
 test-and-report = "coverage run -m pytest && coverage combine && coverage report && coverage html --show-contexts" # hatch run test-and-report
+# Run mutation tests with mutmut:
+mutation-test = "mutmut run" # hatch run mutation-test
+# Show a summary of the latest mutation testing session:
+mutation-results = "mutmut results" # hatch run mutation-results
+# Explore mutation testing results interactively:
+mutation-browse = "mutmut browse" # hatch run mutation-browse
 # Profile render command
 profile-render-command = "python -m cProfile -o render_command.prof -m rendercv render examples/John_Doe_ClassicTheme_CV.yaml && snakeviz render_command.prof"
 # Update schema.json:
@@ -281,3 +288,12 @@ addopts = [
     "--strict-config",  # Always fail if there are unknown configuration options
 ]
 testpaths = ["tests"]
+
+[tool.mutmut]
+# Restrict test discovery to the repository's test suite.
+tests_dir = ["tests"]
+# Ensure resources that live outside the package (like the JSON schema) are available
+# when Mutmut creates its working directory.
+also_copy = [
+    "schema.json",
+]

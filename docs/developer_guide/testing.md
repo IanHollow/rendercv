@@ -21,6 +21,43 @@ hatch run test-and-report
 ```
 Once new commits are pushed to the `main` branch, the [`test.yaml`](https://github.com/rendercv/rendercv/blob/main/.github/workflows/test.yaml) workflow will be automatically triggered, and the tests will run.
 
+## Mutation testing
+
+RenderCV supports mutation testing via [`mutmut`](https://mutmut.readthedocs.io). Mutation
+testing helps identify gaps in the test suite by introducing small changes to the source
+code and checking whether the tests detect them.
+
+```bash
+hatch run mutation-test
+```
+
+The command above will:
+
+1. Collect test execution statistics so Mutmut knows which tests exercise each part of the
+   code base.
+2. Generate mutants for the entire `rendercv` package.
+3. Execute the relevant subset of tests for each mutant.
+
+Mutation sessions can take a while to finish, especially the first time. Progress and
+results are cached in `.mutmut-cache`, so subsequent runs only rerun mutants affected by
+code changes.
+
+After a run completes, review the summary to understand which mutants were killed or
+survived:
+
+```bash
+hatch run mutation-results
+```
+
+For an interactive TUI that lets you inspect individual mutants and diffs, use:
+
+```bash
+hatch run mutation-browse
+```
+
+Mutation runs create a temporary `mutants/` directory. It is listed in `.gitignore`, but you
+can delete it manually once you are done inspecting the results.
+
 ## About [`testdata`](https://github.com/rendercv/rendercv/tree/main/tests/testdata) folder
 
 In some of the tests:

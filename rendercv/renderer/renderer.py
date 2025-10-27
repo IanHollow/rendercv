@@ -79,26 +79,29 @@ def copy_theme_files_to_output_directory(
             )
             raise FileNotFoundError(message)
 
-    dont_copy_files_with_these_extensions = [".py", ".j2.typ"]
     for theme_file in theme_directory_path.iterdir():
-        # theme_file.suffix returns the latest part of the file name after the last dot.
-        # But we need the latest part of the file name after the first dot:
-        try:
-            suffix = re.search(r"\..*", theme_file.name)[0]  # type: ignore
-        except TypeError:
-            suffix = ""
+        suffixes = set(theme_file.suffixes)
+        full_suffix = "".join(theme_file.suffixes)
 
-        if suffix not in dont_copy_files_with_these_extensions and theme_file.name != "__pycache__":
-            if theme_file.is_dir():
-                shutil.copytree(
-                    str(theme_file),
-                    output_directory_path / theme_file.name,
-                    dirs_exist_ok=True,
-                )
-            else:
-                shutil.copyfile(
-                    str(theme_file), output_directory_path / theme_file.name
-                )
+        should_skip = (
+            theme_file.name == "__pycache__"
+            or ".py" in suffixes
+            or ".pyc" in suffixes
+            or ".meta" in suffixes
+            or full_suffix == ".j2.typ"
+        )
+
+        if should_skip:
+            continue
+
+        if theme_file.is_dir():
+            shutil.copytree(
+                str(theme_file),
+                output_directory_path / theme_file.name,
+                dirs_exist_ok=True,
+            )
+        else:
+            shutil.copyfile(str(theme_file), output_directory_path / theme_file.name)
 
 
 def create_contents_of_a_typst_file(
