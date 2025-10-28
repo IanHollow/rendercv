@@ -6,19 +6,12 @@ the time span between two dates, the date string, the URL of a social network, e
 
 import importlib
 import pathlib
-import re
 from datetime import date as Date
 
 import phonenumbers
 
 from .curriculum_vitae import curriculum_vitae
 from .locale import locale
-
-_YMD_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
-
-_YM_PATTERN = re.compile(r"\d{4}-\d{2}")
-
-_Y_PATTERN = re.compile(r"\d{4}")
 
 
 def format_phone_number(phone_number: str) -> str:
@@ -361,17 +354,17 @@ def get_date_object(date: str | int) -> Date:
     """
     if isinstance(date, int):
         date_object = Date.fromisoformat(f"{date}-01-01")
-    elif date == "present":
-        date_object = get_date_input()
-    elif _YMD_PATTERN.fullmatch(date):
+    elif len(date) == 10 and date[4] == "-" and date[7] == "-":
         # Then it is in YYYY-MM-DD format
         date_object = Date.fromisoformat(date)
-    elif _YM_PATTERN.fullmatch(date):
+    elif len(date) == 7 and date[4] == "-":
         # Then it is in YYYY-MM format
         date_object = Date.fromisoformat(f"{date}-01")
-    elif _Y_PATTERN.fullmatch(date):
+    elif len(date) == 4 and date.isdigit():
         # Then it is in YYYY format
         date_object = Date.fromisoformat(f"{date}-01-01")
+    elif date == "present":
+        date_object = get_date_input()
     else:
         message = (
             "This is not a valid date! Please use either YYYY-MM-DD, YYYY-MM, or"
