@@ -13,6 +13,8 @@ import pydantic_extra_types.color as pydantic_color
 
 from ..data.models.base import RenderCVBaseModelWithoutExtraKeys
 
+_DIMENSION_PATTERN = re.compile(r"\d+\.?\d*(cm|in|pt|mm|ex|em)")
+
 
 # Custom field types:
 def validate_typst_dimension(dimension: str) -> str:
@@ -24,7 +26,7 @@ def validate_typst_dimension(dimension: str) -> str:
     Returns:
         The input string itself if it is a valid dimension.
     """
-    if not re.fullmatch(r"\d+\.?\d*(cm|in|pt|mm|ex|em)", dimension):
+    if not _DIMENSION_PATTERN.fullmatch(dimension):
         message = (
             "The value must be a number followed by a unit (cm, in, pt, mm, ex, em)."
             " For example, 0.1cm."
