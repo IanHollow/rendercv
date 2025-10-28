@@ -6,7 +6,6 @@ the time span between two dates, the date string, the URL of a social network, e
 
 import importlib
 import pathlib
-import re
 from datetime import date as Date
 
 import phonenumbers
@@ -355,13 +354,13 @@ def get_date_object(date: str | int) -> Date:
     """
     if isinstance(date, int):
         date_object = Date.fromisoformat(f"{date}-01-01")
-    elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+    elif len(date) == 10 and date[4] == "-" and date[7] == "-":
         # Then it is in YYYY-MM-DD format
         date_object = Date.fromisoformat(date)
-    elif re.fullmatch(r"\d{4}-\d{2}", date):
+    elif len(date) == 7 and date[4] == "-":
         # Then it is in YYYY-MM format
         date_object = Date.fromisoformat(f"{date}-01")
-    elif re.fullmatch(r"\d{4}", date):
+    elif len(date) == 4 and date.isdigit():
         # Then it is in YYYY format
         date_object = Date.fromisoformat(f"{date}-01-01")
     elif date == "present":
