@@ -32,11 +32,13 @@ def validate_date_field(date: int | str | None) -> int | str | None:
 
     if date_is_provided:
         if isinstance(date, str):
-            if re.fullmatch(r"\d{4}-\d{2}(-\d{2})?", date):
-                # Then it is in YYYY-MM-DD or YYYY-MMY format
+            if (len(date) == 10 and date[4] == "-" and date[7] == "-") or (
+                len(date) == 7 and date[4] == "-"
+            ):
+                # Then it is in YYYY-MM-DD or YYYY-MM format
                 # Check if it is a valid date:
                 computers.get_date_object(date)
-            elif re.fullmatch(r"\d{4}", date):
+            elif len(date) == 4 and date.isdigit():
                 # Then it is in YYYY format, so, convert it to an integer:
 
                 # This is not required for start_date and end_date because they
